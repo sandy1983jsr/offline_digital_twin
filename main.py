@@ -26,7 +26,6 @@ if data_option == "Upload your CSV file":
     )
     if uploaded_file:
         try:
-            # Read the uploaded file only once
             df = pd.read_csv(uploaded_file)
             if "timestamp" in df.columns:
                 df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -62,7 +61,6 @@ if df is not None and not df.empty:
     st.markdown("---")
     st.markdown("## 📈 Trends & Distributions")
 
-    # If timestamp available, use as x-axis
     if "timestamp" in df.columns:
         df = df.sort_values("timestamp")
         st.line_chart(df.set_index("timestamp")[["furnace_temp", "power_usage", "gas_consumption"]])
@@ -85,24 +83,30 @@ if df is not None and not df.empty:
     st.markdown("---")
     st.markdown("## 🤖 Insights & Optimization")
 
-    with st.expander("Full Analytics (JSON)", expanded=False):
-        st.json(analytics)
-    st.success(
-        f"Predicted Scrap Rate: {analytics['predicted_scrap_rate']}%"
-        if isinstance(analytics['predicted_scrap_rate'], (int, float))
-        else f"Predicted Scrap Rate: {analytics['predicted_scrap_rate']}"
-    )
+    # --- Enhanced Insights & Optimization Section ---
+    # KPIs are already shown above as metrics
+    # Show Predicted Scrap Rate
+    st.metric("Predicted Scrap Rate (%)", f"{analytics['predicted_scrap_rate']:.2f}" if isinstance(analytics['predicted_scrap_rate'], (int, float)) else analytics['predicted_scrap_rate'])
 
-    st.info("Energy Optimization Recommendations:")
-    for rec in analytics["energy_optimization"]:
-        st.write(f"- **{rec['action']}** ({rec['suggested_value']})")
+    # Energy Optimization Recommendations as Table
+    st.subheader("Energy Optimization Recommendations")
+    if analytics["energy_optimization"]:
+        energy_opt_df = pd.DataFrame(analytics["energy_optimization"])
+        st.table(energy_opt_df)
+    else:
+        st.info("No energy optimization recommendations at this time.")
 
+    # Alerts as Highlighted List
+    st.subheader("Alerts")
     if analytics["alerts"]:
-        st.error("Alerts:")
         for alert in analytics["alerts"]:
-            st.write(f"- {alert}")
+            st.error(f"⚠️ {alert}")
     else:
         st.success("No critical alerts detected.")
+
+    # For transparency, allow expanding to see full JSON if desired
+    with st.expander("View Full Analytics JSON"):
+        st.json(analytics)
 
     st.markdown("---")
     st.markdown("## 🔁 Closed-Loop Optimization")
