@@ -18,21 +18,29 @@ data_option = st.sidebar.radio(
     ("Upload your CSV file", "Use sample dataset"),
 )
 
+df = None
+
 if data_option == "Upload your CSV file":
     uploaded_file = st.sidebar.file_uploader(
         "Upload Periodic/Manual/Hourly Dataset (CSV format)", type=["csv"]
     )
     if uploaded_file:
-        df = pd.read_csv(uploaded_file, parse_dates=["timestamp"] if "timestamp" in pd.read_csv(uploaded_file, nrows=1).columns else None)
-        st.success("File uploaded successfully!")
+        try:
+            # Read the uploaded file only once
+            df = pd.read_csv(uploaded_file)
+            if "timestamp" in df.columns:
+                df["timestamp"] = pd.to_datetime(df["timestamp"])
+            st.success("File uploaded successfully!")
+        except pd.errors.EmptyDataError:
+            st.error("Uploaded file is empty. Please upload a valid CSV file with data.")
+            df = None
     else:
         st.info("Please upload your CSV file to proceed.")
-        df = None
 else:
     df = get_sample_data()
     st.info("Using built-in sample dataset:")
 
-if df is not None:
+if df is not None and not df.empty:
     st.subheader("Sample Data Preview")
     st.dataframe(df.head())
 
@@ -58,7 +66,8 @@ if df is not None:
     if "timestamp" in df.columns:
         df = df.sort_values("timestamp")
         st.line_chart(df.set_index("timestamp")[["furnace_temp", "power_usage", "gas_consumption"]])
-        st.line_chart(df.set_index("timestamp")[["scrap_rate"]] if "scrap_rate" in df.columns else ((df["material_input"] - df["production_output"]) / df["material_input"]).rename("scrap_rate"))
+        scrap_rate_series = ((df["material_input"] - df["production_output"]) / df["material_input"]).rename("scrap_rate") * 100
+        st.line_chart(scrap_rate_series)
     else:
         chart_cols = st.columns(2)
         chart_cols[0].subheader("Furnace Temp Trend")
