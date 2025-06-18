@@ -47,6 +47,7 @@ if df is not None and not df.empty:
     analytics = run_full_analytics(df)
     kpis = analytics["kpis"]
 
+    # KPIs as metrics and table
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Furnace Temp (°C)", f"{kpis['mean_furnace_temp']:.1f}")
     col2.metric("Power Usage (kWh)", f"{kpis['mean_power_usage']:.1f}")
@@ -57,6 +58,9 @@ if df is not None and not df.empty:
     col5.metric("Scrap Rate (%)", f"{kpis['mean_scrap_rate']:.2f}")
     col6.metric("Downtime (%)", f"{kpis['downtime_pct']:.2f}")
     col7.metric("Runtime (%)", f"{kpis['runtime_pct']:.2f}")
+
+    with st.expander("Show All KPIs (Table)"):
+        st.table(pd.DataFrame([kpis]))
 
     st.markdown("---")
     st.markdown("## 📈 Trends & Distributions")
@@ -83,20 +87,25 @@ if df is not None and not df.empty:
     st.markdown("---")
     st.markdown("## 🤖 Insights & Optimization")
 
-    # --- Enhanced Insights & Optimization Section ---
-    # KPIs are already shown above as metrics
-    # Show Predicted Scrap Rate
-    st.metric("Predicted Scrap Rate (%)", f"{analytics['predicted_scrap_rate']:.2f}" if isinstance(analytics['predicted_scrap_rate'], (int, float)) else analytics['predicted_scrap_rate'])
+    # Predicted Scrap Rate as metric
+    st.metric(
+        "Predicted Scrap Rate (%)",
+        f"{analytics['predicted_scrap_rate']:.2f}"
+        if isinstance(analytics['predicted_scrap_rate'], (int, float))
+        else analytics['predicted_scrap_rate']
+    )
+
+    # KPIs table again for completeness in Insights section (optional, can remove if redundant)
+    # st.table(pd.DataFrame([analytics["kpis"]]))
 
     # Energy Optimization Recommendations as Table
     st.subheader("Energy Optimization Recommendations")
     if analytics["energy_optimization"]:
-        energy_opt_df = pd.DataFrame(analytics["energy_optimization"])
-        st.table(energy_opt_df)
+        st.table(pd.DataFrame(analytics["energy_optimization"]))
     else:
         st.info("No energy optimization recommendations at this time.")
 
-    # Alerts as Highlighted List
+    # Alerts as Highlighted List or Table
     st.subheader("Alerts")
     if analytics["alerts"]:
         for alert in analytics["alerts"]:
@@ -104,7 +113,21 @@ if df is not None and not df.empty:
     else:
         st.success("No critical alerts detected.")
 
-    # For transparency, allow expanding to see full JSON if desired
+    # Optionally, show all Insights & Optimization data as a comprehensive dashboard/table
+    with st.expander("View Full Analytics as Dashboard Table"):
+        # Combine all main analytics into a single dashboard format
+        dashboard_dict = analytics["kpis"].copy()
+        dashboard_dict["predicted_scrap_rate"] = analytics["predicted_scrap_rate"]
+        st.table(pd.DataFrame([dashboard_dict]))
+        st.write("### Energy Optimization Recommendations")
+        st.table(pd.DataFrame(analytics["energy_optimization"]))
+        st.write("### Alerts")
+        if analytics["alerts"]:
+            st.table(pd.DataFrame({"Alerts": analytics["alerts"]}))
+        else:
+            st.write("No critical alerts.")
+
+    # For transparency, allow expanding to see raw JSON if desired
     with st.expander("View Full Analytics JSON"):
         st.json(analytics)
 
