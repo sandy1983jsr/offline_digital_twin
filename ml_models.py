@@ -2,7 +2,6 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 
 def predict_scrap_rate(df: pd.DataFrame):
-    # Simple ML: Predict scrap rate from numeric columns if enough data is present
     features = ["furnace_temp", "power_usage", "gas_consumption", "cycle_time", "die_temp"]
     if all(f in df.columns for f in features) and len(df) > 10:
         X = df[features].fillna(df[features].mean())
