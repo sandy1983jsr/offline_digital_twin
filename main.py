@@ -10,9 +10,8 @@ import streamlit as st
 
 st.set_page_config(page_title="Offline Digital Twin for Forging", layout="wide")
 
-st.title("Offline Digital Twin for Forging (Batch Data Mode) Dashboard")
+st.title("Offline Digital Twin for Forging (Batch/Hourly Data Dashboard)")
 
-# Sidebar for data options
 st.sidebar.header("Data Options")
 data_option = st.sidebar.radio(
     "Choose Data Source:",
@@ -21,10 +20,10 @@ data_option = st.sidebar.radio(
 
 if data_option == "Upload your CSV file":
     uploaded_file = st.sidebar.file_uploader(
-        "Upload Periodic/Manual Dataset (CSV format)", type=["csv"]
+        "Upload Periodic/Manual/Hourly Dataset (CSV format)", type=["csv"]
     )
     if uploaded_file:
-        df = pd.read_csv(uploaded_file)
+        df = pd.read_csv(uploaded_file, parse_dates=["timestamp"] if "timestamp" in pd.read_csv(uploaded_file, nrows=1).columns else None)
         st.success("File uploaded successfully!")
     else:
         st.info("Please upload your CSV file to proceed.")
@@ -37,7 +36,6 @@ if df is not None:
     st.subheader("Sample Data Preview")
     st.dataframe(df.head())
 
-    # --- Dashboard Layout ---
     st.markdown("## 🛠️ Key Process KPIs")
     analytics = run_full_analytics(df)
     kpis = analytics["kpis"]
@@ -56,18 +54,24 @@ if df is not None:
     st.markdown("---")
     st.markdown("## 📈 Trends & Distributions")
 
-    chart_cols = st.columns(2)
-    chart_cols[0].subheader("Furnace Temp Trend")
-    chart_cols[0].line_chart(df["furnace_temp"])
-    chart_cols[1].subheader("Power Usage Trend")
-    chart_cols[1].line_chart(df["power_usage"])
+    # If timestamp available, use as x-axis
+    if "timestamp" in df.columns:
+        df = df.sort_values("timestamp")
+        st.line_chart(df.set_index("timestamp")[["furnace_temp", "power_usage", "gas_consumption"]])
+        st.line_chart(df.set_index("timestamp")[["scrap_rate"]] if "scrap_rate" in df.columns else ((df["material_input"] - df["production_output"]) / df["material_input"]).rename("scrap_rate"))
+    else:
+        chart_cols = st.columns(2)
+        chart_cols[0].subheader("Furnace Temp Trend")
+        chart_cols[0].line_chart(df["furnace_temp"])
+        chart_cols[1].subheader("Power Usage Trend")
+        chart_cols[1].line_chart(df["power_usage"])
 
-    chart_cols2 = st.columns(2)
-    chart_cols2[0].subheader("Gas Consumption Trend")
-    chart_cols2[0].line_chart(df["gas_consumption"])
-    chart_cols2[1].subheader("Scrap per Batch")
-    scrap_per_batch = ((df["material_input"] - df["production_output"]) / df["material_input"]) * 100
-    chart_cols2[1].bar_chart(scrap_per_batch)
+        chart_cols2 = st.columns(2)
+        chart_cols2[0].subheader("Gas Consumption Trend")
+        chart_cols2[0].line_chart(df["gas_consumption"])
+        chart_cols2[1].subheader("Scrap per Batch")
+        scrap_per_batch = ((df["material_input"] - df["production_output"]) / df["material_input"]) * 100
+        chart_cols2[1].bar_chart(scrap_per_batch)
 
     st.markdown("---")
     st.markdown("## 🤖 Insights & Optimization")
