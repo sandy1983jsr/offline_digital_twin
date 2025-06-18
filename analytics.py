@@ -2,20 +2,17 @@ import pandas as pd
 from ml_models import predict_scrap_rate, recommend_optimizations
 
 def get_sample_data():
-    # Generates a sample DataFrame similar to forging batch records
-    # 20 rows, values are randomized but realistic for forging operations
     import numpy as np
-    np.random.seed(42)
-    n = 20
+    n = 24
+    base_time = pd.Timestamp("2025-06-17 00:00")
     df = pd.DataFrame({
+        "timestamp": [base_time + pd.Timedelta(hours=i) for i in range(n)],
         "furnace_temp": np.random.uniform(1150, 1250, n),
         "power_usage": np.random.uniform(100, 150, n),
         "gas_consumption": np.random.uniform(50, 80, n),
         "water_usage": np.random.uniform(0.8, 1.2, n),
         "material_input": np.random.uniform(500, 600, n),
-        "production_output": lambda d: d["material_input"] - np.random.uniform(10, 20, n),
         "downtime": np.random.uniform(0, 0.2, n),
-        "runtime": lambda d: 1 - d["downtime"],
         "cycle_time": np.random.uniform(1, 4, n),
         "die_temp": np.random.uniform(200, 400, n),
     })
